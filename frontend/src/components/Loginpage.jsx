@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSpring, animated, config } from 'react-spring';
+import { useSpring, animated, config, useTrail } from 'react-spring';
 import { FaInstagram, FaTwitter, FaFacebook, FaBook, FaPencilAlt, FaGraduationCap, FaChalkboardTeacher, FaEdit, FaUserSecret, FaThumbsUp } from 'react-icons/fa';
 
 const FeatureCard = ({ icon: Icon, title, color }) => (
@@ -9,60 +9,6 @@ const FeatureCard = ({ icon: Icon, title, color }) => (
     <h3 className="text-lg font-semibold mb-2">{title}</h3>
   </div>
 );
-
-const CrazyBackground = () => {
-  const [icons, setIcons] = useState([]);
-  const backgroundIcons = [FaGraduationCap, FaChalkboardTeacher, FaBook, FaPencilAlt];
-
-  useEffect(() => {
-    const newIcons = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      Icon: backgroundIcons[Math.floor(Math.random() * backgroundIcons.length)],
-      size: Math.random() * 30 + 10,
-      speed: Math.random() * 5 + 1,
-      angle: Math.random() * 360,
-      radius: Math.random() * 40 + 10,
-      centerX: Math.random() * 100,
-      centerY: Math.random() * 100,
-      opacity: Math.random() * 0.5 + 0.1,
-    }));
-    setIcons(newIcons);
-  }, []);
-
-  useEffect(() => {
-    const animateIcons = () => {
-      setIcons(prevIcons =>
-        prevIcons.map(icon => ({
-          ...icon,
-          angle: (icon.angle + icon.speed) % 360,
-        }))
-      );
-    };
-
-    const intervalId = setInterval(animateIcons, 50);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  return (
-    <>
-      {icons.map(icon => (
-        <animated.div
-          key={icon.id}
-          style={{
-            position: 'absolute',
-            left: `calc(${icon.centerX}% + ${Math.cos(icon.angle * Math.PI / 180) * icon.radius}%)`,
-            top: `calc(${icon.centerY}% + ${Math.sin(icon.angle * Math.PI / 180) * icon.radius}%)`,
-            opacity: icon.opacity,
-            transform: `rotate(${icon.angle}deg)`,
-          }}
-          className="text-blue-300"
-        >
-          <icon.Icon size={icon.size} />
-        </animated.div>
-      ))}
-    </>
-  );
-};
 
 const Loginpage = () => {
   const [email, setEmail] = useState('');
@@ -75,6 +21,7 @@ const Loginpage = () => {
     navigate('/home');
   };
 
+  // Enhanced Animations
   const fadeIn = useSpring({
     from: { opacity: 0 },
     to: { opacity: 1 },
@@ -98,18 +45,53 @@ const Loginpage = () => {
     config: { duration: 2000 }
   });
 
+  const trail = useTrail(3, {
+    from: { opacity: 0, transform: 'scale(0.8)' },
+    to: { opacity: 1, transform: 'scale(1)' },
+    config: { mass: 1, tension: 280, friction: 60 }
+  });
+
+  const backgroundIcons = [FaGraduationCap, FaChalkboardTeacher, FaBook, FaPencilAlt];
+  const backgroundAnimations = useTrail(20, {
+    from: { opacity: 0, transform: 'translateY(100px) rotate(0deg)' },
+    to: async (next) => {
+      while (1) {
+        await next({ opacity: 0.7, transform: 'translateY(-1000px) rotate(360deg)' });
+        await next({ opacity: 0, transform: 'translateY(100px) rotate(0deg)' });
+      }
+    },
+    config: { duration: 10000 }, // Reduced from 20000 to 10000
+    delay: (i) => i * 250, // Reduced from 500 to 250
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-blue-900 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-black via-blue-900 to-black text-white overflow-y-auto">
       <animated.div style={fadeIn} className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-        <CrazyBackground />
+        {/* Dynamic Background Elements */}
+        {backgroundAnimations.map((animation, index) => (
+          <animated.div
+            key={index}
+            style={{
+              ...animation,
+              position: 'absolute',
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            className="text-blue-300 text-opacity-70" // Increased opacity
+          >
+            {React.createElement(backgroundIcons[index % backgroundIcons.length], { size: 30 })} 
+          </animated.div>
+        ))}
 
         {/* Header */}
         <div className="absolute top-0 left-0 w-full h-20 bg-black bg-opacity-50 backdrop-filter backdrop-blur-md">
           <div className="flex justify-between items-center h-full px-4">
             <img src="./src/assets/images/loginbck.png" alt="SRM Logo" className="h-16 rounded-full shadow-lg" />
             <div className="flex space-x-4">
-              {[FaInstagram, FaTwitter, FaFacebook].map((Icon, index) => (
-                <Icon key={index} className="text-white text-2xl cursor-pointer hover:text-blue-400 transition-colors duration-300" />
+              {trail.map((props, index) => (
+                <animated.div key={index} style={props}>
+                  {[FaInstagram, FaTwitter, FaFacebook][index]({ className: "text-white text-2xl cursor-pointer hover:text-blue-400 transition-colors duration-300" })}
+                </animated.div>
               ))}
             </div>
           </div>
@@ -192,6 +174,22 @@ const Loginpage = () => {
         <button className="mt-12 px-8 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition duration-300">
           Sign up now!
         </button>
+
+        {/* Floating Icons */}
+        {[FaBook, FaPencilAlt, FaGraduationCap, FaChalkboardTeacher].map((Icon, index) => (
+          <animated.div 
+            key={index}
+            style={{
+              ...float, 
+              position: 'absolute', 
+              top: `${20 + index * 20}%`, 
+              left: index % 2 === 0 ? '10%' : '80%',
+            }} 
+            className="z-10"
+          >
+            <Icon className="text-5xl text-blue-300" />
+          </animated.div>
+        ))}
       </animated.div>
 
       {/* Footer */}
